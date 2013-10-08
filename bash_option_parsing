@@ -1,0 +1,68 @@
+#!/bin/bash
+
+## Options Parsing ##
+function parseOptions(){
+  invalidOptionFlag=0 # set invalid option boolean
+  options=($@)        # put the options into an array
+
+  while [ ${#options[@]} -gt 0 ]; do    # while there are options to parse
+    case ${options} in                  # Examin the current option
+      (--*)                             # If it is a long option
+        case ${options} in              # Parse the long option
+          (--outfile)
+            options=(${options[@]#${options}})
+
+            if [ "${options:0:1}" == "-" ]; then
+              continue
+            else
+              outFile="${options}"
+              options=(${options[@]#${options}})
+              continue
+            fi
+            ;;
+          (*)
+            echo "invalid option ${options}"
+            invalidOptionFlag=1
+            ;;
+        esac
+        ;;
+      (-*)                             # If it is a short option
+        if [ ${#options} -lt 3 ]; then # If it is a single short option
+          case ${options} in
+            (-y)
+              testFlag=1
+              ;;
+            (*)
+              echo "invalid option ${options}"
+              invalidOptionFlag=1
+              ;;
+          esac
+        else                           # Create single short options from combined short option
+          multiOption="${options}"
+          first="-${multiOption:1:1}"
+          remaining="-${multiOption:2}"
+          options=(${options[@]#${options}} $first $remaining)
+          continue
+        fi
+        ;; 
+    esac
+
+    options=(${options[@]#${options}}) # Remove the parsed option from options array
+  done
+
+  return $invalidOptionFlag
+}
+
+## Set variables ##
+testFlag=0
+outFile=''
+
+## Parse options ##
+parseOptions $@
+
+## Main ##
+if [ $? == 0 ]; then
+  echo "testFlag = $testFlag"
+  echo "outFile = $outFile"
+fi
+
