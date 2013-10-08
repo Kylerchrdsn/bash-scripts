@@ -1,0 +1,89 @@
+#! /bin/bash
+
+## Options Parsing ##
+function parseOptions(){
+  invalidOptionFlag=0 # set invalid option boolean
+  options=($@)        # put the options into an array
+
+  while [ ${#options[@]} -gt 0 ]; do    # while there are options to parse
+    case ${options} in                  # Examin the current option
+      (--*)                             # If it is a long option
+        case ${options} in              # Parse the long option
+          (--flag-path)
+            options=(${options[@]#${options}})
+
+            if [ "${options:0:1}" == "-" ]; then
+              continue
+            else
+              flag_path="${options}"
+              options=(${options[@]#${options}})
+              continue
+            fi
+            ;;
+          (*)
+            echo "invalid option ${options}"
+            invalidOptionFlag=1
+            ;;
+        esac
+        ;;
+      (-*)                             # If it is a short option
+        if [ ${#options} -lt 3 ]; then # If it is a single short option
+          case ${options} in
+            (-c)
+              cinnamon=1
+              ;;
+            (*)
+              echo "invalid option ${options}"
+              invalidOptionFlag=1
+              ;;
+          esac
+        else                           # Create single short options from combined short option
+          multiOption="${options}"
+          first="-${multiOption:1:1}"
+          remaining="-${multiOption:2}"
+          options=(${options[@]#${options}} $first $remaining)
+          continue
+        fi
+        ;;
+    esac
+
+    options=(${options[@]#${options}}) # Remove the parsed option from options array
+  done
+
+  return $invalidOptionFlag
+}
+
+## Paths ##
+flag_path='/home/krichardson/pictures/desktop_bg/flag'
+bgheap_path='/home/krichardson/pictures/bgheap'
+bg_path='/home/krichardson/pictures/desktop_bg/1265560742441'
+
+cinnamon=0
+
+## Parse options ##
+parseOptions $@
+
+
+
+## Variables ##
+flag=`cat $flag_path`
+bgheap=(`ls $bgheap_path`)
+count=`echo ${bgheap[@]} | wc -w`
+
+## Reset flag, if needed ##
+if (( $flag == $count )); then echo '0' > $flag_path; flag=0; fi
+
+## For random selection ##
+(( selector = ($RANDOM % $count) ))
+
+## Set new background ##
+if [ $cinnamon -eq 0  ]; then
+  cp $bgheap_path/${bgheap[$selector]} $bg_path
+else
+  feh --bg-scale $bgheap_path/${bgheap[$selector]}
+fi
+
+## Update flag file ##
+let flag=$flag+1
+echo $flag > $flag_path
+
